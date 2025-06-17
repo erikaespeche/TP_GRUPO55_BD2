@@ -268,7 +268,7 @@ EXEC ObtenerHistorialEstudios 5;
 EXEC ObtenerHistorialEstudios;
 
 
---------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --8. Borrar Historial ESTUDIOS
 CREATE OR ALTER PROCEDURE BorrarHistorialEstudios (@IDPaciente INT)
 AS
@@ -282,27 +282,83 @@ EXEC BorrarHistorialEstudios @IDPaciente = 1;
 EXEC ObtenerHistorialEstudios;
 
 
-/*CON FRANCISCO
---1.ERIKA
---PRESENTACION TABLAS, INSERT INTO, EJ 1 y EJ 2
 
---2.MILTON
---EXPLICACION EJ 3 y EJ 4 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+--9. Trigger IDEstadoTurno
+CREATE OR ALTER TRIGGER trg_ActualizarFechaUltimaVisita
+ON Turnos
+AFTER UPDATE
+AS
+BEGIN
+    -- cuando pongo que asistió cambia el valor de la tabla para poder guardar bien la información de GETDATE()
+    UPDATE Pacientes
+    SET FechaUltimaVisita = CONVERT(VARCHAR(50), GETDATE(), 120) -- Ej: 2025-06-17 22:35:00
+    WHERE IDPaciente IN (
+        SELECT i.IDPaciente
+        FROM inserted i
+        JOIN Estado_Turnos e ON i.IDEstadoTurno = e.IDEstadoTurno
+        WHERE e.Nombre = 'Asistido'
+    );
 
---JESSI
---EXPLIACION EJ 5 y EJ 6 
+    -- cuando pongo cualquier otro estado va a guardar el estado que corresponda con lo escrito, ya sea pendiente, confirmado, canceelado o reprogramado
+    UPDATE Pacientes
+    SET FechaUltimaVisita = e.Nombre
+    FROM Pacientes p
+    INNER JOIN inserted i ON p.IDPaciente = i.IDPaciente
+    INNER JOIN Estado_Turnos e ON i.IDEstadoTurno = e.IDEstadoTurno
+    WHERE e.Nombre IN ('Pendiente', 'Confirmado', 'Cancelado', 'Reprogramado');
+END;
 
---FRANCISCO
---EXPLICACION EJ 7 y EJ 8
 
 
-/*SI NO SE PRESENTA FRANCISCO:
---1.ERIKA
---PRESENTACION TABLAS, INSERT INTO, EJ 1 y EJ 2
+-- contenido actualizado en la tabla Pacientes
+SELECT * 
+FROM Pacientes
+WHERE IDPaciente = (
+    SELECT IDPaciente FROM Turnos WHERE IDTurno = 1
+);
 
---2.MILTON
---EXPLICACION EJ 3 y EJ 4 y EJ 5
 
---JESSI
---EXPLIACION EJ 6 y EJ 7 y EJ 8
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+--10. Procedimiento sp_ActualizarEstadoTurno
+CREATE OR ALTER PROCEDURE sp_ActualizarEstadoTurno
+    @IDTurno INT,
+    @NuevoEstadoNombre VARCHAR(40)
+AS
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @NuevoEstadoID INT;
+    SELECT @NuevoEstadoID = IDEstadoTurno FROM Estado_Turnos WHERE Nombre = @NuevoEstadoNombre;
+
+    IF @NuevoEstadoID IS NULL
+    BEGIN
+        RAISERROR('Estado no válido', 16, 1);
+        RETURN;
+    END
+
+    UPDATE Turnos
+    SET IDEstadoTurno = @NuevoEstadoID
+    WHERE IDTurno = @IDTurno;
+END;
+
+
+-- 1 = Pendiente
+EXEC sp_ActualizarEstadoTurno @IDTurno = 1, @NuevoEstadoNombre = 'Pendiente';
+
+-- 2 = Confirmado
+EXEC sp_ActualizarEstadoTurno @IDTurno = 1, @NuevoEstadoNombre = 'Confirmado';
+
+-- 3 = Asistido
+EXEC sp_ActualizarEstadoTurno @IDTurno = 1, @NuevoEstadoNombre = 'Asistido';
+
+-- 4 = Cancelado
+EXEC sp_ActualizarEstadoTurno @IDTurno = 1, @NuevoEstadoNombre = 'Cancelado';
+
+-- 5 = Reprogramado
+EXEC sp_ActualizarEstadoTurno @IDTurno = 1, @NuevoEstadoNombre = 'Reprogramado';
+
+-- estado de turno actual
+SELECT IDTurno, IDEstadoTurno
+FROM Turnos
+WHERE IDTurno = 1;

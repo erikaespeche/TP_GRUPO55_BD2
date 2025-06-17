@@ -17,7 +17,7 @@ CREATE TABLE Pacientes (
     Nombres VARCHAR(50) NOT NULL,
     Apellidos VARCHAR(50) NOT NULL,
     FechaNacimiento DATE NOT NULL,
-    Sexo CHAR(1),
+    Sexo CHAR(1) CHECK (Sexo IN ('M', 'F')),
     GrupoSanguineo VARCHAR(8) NOT NULL,
     Email VARCHAR(100) NOT NULL,
     Telefono VARCHAR(20) NOT NULL,
@@ -25,8 +25,11 @@ CREATE TABLE Pacientes (
     Direccion VARCHAR(100) NOT NULL,
     Ciudad VARCHAR(100) NOT NULL,
     Provincia VARCHAR(100) NOT NULL,
-    CodigoPostal SMALLINT NOT NULL
+    CodigoPostal SMALLINT NOT NULL,
+	FechaUltimaVisita VARCHAR(50)
 );
+
+
 
 CREATE TABLE Medicos (
     IDMedico INT PRIMARY KEY IDENTITY (1,1),
